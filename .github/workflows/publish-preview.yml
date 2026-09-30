@@ -1,0 +1,38 @@
+name: Publish guide preview
+
+on:
+  workflow_run:
+    workflows: ['Guide checks']
+    types: [completed]
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, Linux, X64, guide-preview]
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PUBLISHER_APP_ID: ${{ vars.PUBLISHER_APP_ID }}
+      PUBLISHER_APP_KEY: ${{ secrets.PUBLISHER_APP_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          name: guide-preview-source
+          path: incoming
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Render guide preview
+        run: npm run preview -- incoming
+      - uses: actions/upload-artifact@v7
+        with:
+          name: guide-preview-html
+          path: dist/
+          if-no-files-found: error
+      - name: Publish review
+        run: node publish-review.mjs

@@ -1,0 +1,27 @@
+name: Guide checks
+
+on:
+  pull_request:
+    paths:
+      - 'guides/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/guide-checks.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run lint
+      - uses: actions/upload-artifact@v7
+        with:
+          name: guide-preview-source
+          path: guides/
+          if-no-files-found: error
